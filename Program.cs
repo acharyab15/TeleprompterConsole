@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace TeleprompterConsole
 {
@@ -8,12 +9,20 @@ namespace TeleprompterConsole
     {
         static void Main(string[] args)
         {
-            var lines = ReadFrom("sampleQuotes.txt");
-            foreach (var line in lines)
+            var words = ReadFrom("sampleQuotes.txt");
+            var lineLength = 0;
+            foreach (var word in words)
             {
-                Console.WriteLine(line);
+                Console.Write(word);
+                if (!string.IsNullOrWhiteSpace(word))
+                {
+                    var pause = Task.Delay(200);
+                    // Synchronously waiting on a task is an
+                    // anti-pattern. This will get fixed in later
+                    // steps.
+                    pause.Wait();
+                }
             }
-            Console.WriteLine("Hello World!");
         }
 
         static IEnumerable<string> ReadFrom(string file)
@@ -23,7 +32,19 @@ namespace TeleprompterConsole
             {
                 while ((line = reader.ReadLine()) != null )
                 {
-                    yield return line;
+                    var words = line.Split(' ');
+                    var lineLength = 0;
+                    foreach (var word in words)
+                    {
+                        yield return word + " ";
+                        lineLength += word.Length + 1;
+                        if (lineLength > 70) 
+                        {
+                            yield return Environment.NewLine;
+                            lineLength = 0;
+                        }
+                    }
+                    yield return Environment.NewLine;
                 }
             }
         }
