@@ -9,20 +9,54 @@ namespace TeleprompterConsole
     {
         static void Main(string[] args)
         {
+            RunTeleprompter().Wait();
+        }
+
+        private static async Task RunTeleprompter()
+        {
+            var config = new TeleprompterConfig();
+            var displayTask = ShowTeleprompter(config);
+
+            var speedTask = GetInput(config);
+            await Task.WhenAny(displayTask, speedTask);
+        }
+
+        static async Task ShowTeleprompter(TeleprompterConfig config)
+        {
             var words = ReadFrom("sampleQuotes.txt");
-            var lineLength = 0;
             foreach (var word in words)
             {
                 Console.Write(word);
                 if (!string.IsNullOrWhiteSpace(word))
                 {
-                    var pause = Task.Delay(200);
-                    // Synchronously waiting on a task is an
-                    // anti-pattern. This will get fixed in later
-                    // steps.
-                    pause.Wait();
+                    await Task.Delay(config.DelayInMilliseconds);
                 }
             }
+            config.SetDone();
+        }
+
+        private static async Task GetInput(TeleprompterConfig config)
+        {
+            Action work = () =>
+            {
+                do
+                {
+                    var key = Console.ReadKey(true);
+                    if (key.KeyChar == '>')
+                    {
+                        config.UpdateDelay(-10);
+                    }
+                    else if (key.KeyChar == '<')
+                    {
+                        config.UpdateDelay(10);
+                    }
+                    else if (key.KeyChar == 'X' || key.KeyChar == 'x')
+                    {
+                        config.SetDone();
+                    }
+                } while (!config.Done);
+            };
+            await Task.Run(work);
         }
 
         static IEnumerable<string> ReadFrom(string file)
